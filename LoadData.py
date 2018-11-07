@@ -246,7 +246,7 @@ def insertIntoDatabase(gId, title, release, language, author, fullText, conn, cu
         else:
             authorNameS = [author]
 
-        authorNameS = [name for name in authorNameS if(name != '' or name != None)]
+        authorNameS = [name.strip() for name in authorNameS if(name != '' or name != None)]
 
         if(len(authorNameS) > 1):
             pprint(authorNameS)
