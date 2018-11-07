@@ -7,9 +7,6 @@ import pandas.io.sql as psql
 from pprint import pprint 
 
 
-
-
-
 def extractDataFromHeaderLine(dataDescription, line):
     lineS = re.split('^' + dataDescription, line, maxsplit=1)
     #print('lineS is: ')
@@ -111,21 +108,18 @@ def processAuthorName(authorName):
     suffix = ''
     prefix = ''
     nameL = authorName.split()
+
     i = 0
     while(i < len(nameL)):
-        if('(' in nameL[i] or ')' in nameL[i]):
-            print('was in')
+        if(')' in nameL[i] or '(' in nameL[i]):
             del nameL[i]
-            i -= 1
-
+            i -=1
         i += 1
-
-    print('authorName finished loop: ' + authorName)
 
     nameLen = len(nameL)
 
     #check for prefix
-    comPrefixes = ['mr', 'mrs', 'miss', 'sir', 'lord', 'ms', 'dr']
+    comPrefixes = ['mr', 'mrs', 'miss', 'sir', 'lord', 'ms']
     comSuffixes = ['sr', 'jr', 'ii', 'iii', 'iv', 'v']
 
 
@@ -176,12 +170,10 @@ def processAuthorName(authorName):
 def getBookByPrimaryKey(gutenbergId, cur):
     cur.execute('Select * From public."Book" Where gutenberg_id = %s', (gutenbergId,))
     result = cur.fetchall()
-    print('got result book')
     #print(result)
     return result
 
 def bookIsInDatabase(gutenbergId, conn):
-    print('book in')
     result = getBookByPrimaryKey(gutenbergId, conn)
     #print('book is:')
     #print(result)
@@ -197,14 +189,12 @@ def getAuthorByName(firstName, middleName, lastName, suffix, prefix, cur):
                     (firstName, middleName, lastName, suffix, prefix))
 
     result = cur.fetchall()
-    print('got auth result')
+    #print(result)
     return result
 
 def authorIsInDatabase(firstName, middleName, lastName, suffix, prefix, cur):
-    print('auth in')
-
     result = getAuthorByName(firstName, middleName, lastName, suffix, prefix, cur)
-    print('got auth')
+
     if(len(result) > 0):
         return True
     else:
@@ -218,8 +208,6 @@ def getWrittenBy(gutenbergId, authorId, cur):
 
 
 def writtenByRelationInDatabase(gutenbergId, authorId, cur):
-    print('written by in')
-
     result = getWrittenBy(gutenbergId, authorId, cur)
 
     if(len(result) > 0):
@@ -228,8 +216,8 @@ def writtenByRelationInDatabase(gutenbergId, authorId, cur):
         return False
 
 
-def insertIntoDatabase(gId, title, release, language, author, fullText, conn, cur, badFiles):
-    firstName, middleName, lastName, suffix, prefix = processAuthorName(author)
+def insertIntoDatabase(gId, title, release, language, author, fullText, conn, cur, brokenFiles):
+    
     #gId = str(gId) + '-' + language
     try:
     
@@ -247,52 +235,53 @@ def insertIntoDatabase(gId, title, release, language, author, fullText, conn, cu
                             (gId, None, fullText, language, title))
                 print('loaded book wth null date: ' + str(gId))
                 conn.commit()
-            print('author')
+
         else:
             print('book is in database, gid: ' + str(gId))
         
-        
-        #deal with multiple authors
-        #authorsL = []
-        #if(' and ' in author):
-        #    authorsL = author.split(' and ')
+        if(' and ' in author):
+            authorNameS = re.split(' and ', author)
+        elif(',' in author):
+            authorNameS = re.split(',', author)
+        else:
+            authorNameS = [author]
 
+        authorNameS = [name for name in authorNameS if(name != '' or name != None)]
 
-        #TODO fix rest of querys
-        if(not authorIsInDatabase(firstName, middleName, lastName, suffix, prefix, cur)):
+        if(len(authorNameS) > 1):
+            pprint(authorNameS)
+        for author in authorNameS:
+
+            firstName, middleName, lastName, suffix, prefix = processAuthorName(author)
+            #TODO fix rest of querys
+            if(not authorIsInDatabase(firstName, middleName, lastName, suffix, prefix, cur)):
 
             #inset author
-            cur.execute('insert into public."Author" (first_name,last_name,middle_name,suffix,prefix) VALUES (%s, %s, %s, %s, %s) returning author_id',
-                        (firstName, lastName, middleName, suffix, prefix))
-            #print('loaded author')
-            authorId = cur.fetchone()
-            conn.commit()
-            #print('auth id is: ' + str(authorId[0]))
-            print('book')
-        else:
+                cur.execute('insert into public."Author" (first_name,last_name,middle_name,suffix,prefix) VALUES (%s, %s, %s, %s, %s) returning author_id',
+                            (firstName, lastName, middleName, suffix, prefix))
+                #print('loaded author')
+                authorId = cur.fetchone()
+                conn.commit()
+                #print('auth id is: ' + str(authorId[0]))
+            else:
+                
+                authorId = getAuthorByName(firstName, middleName, lastName, suffix, prefix, cur)[0][0]
+                print('author is in database, author_id: ' + str(authorId))
             
-            authorId = getAuthorByName(firstName, middleName, lastName, suffix, prefix, cur)[0][0]
-            print('author is in database, author_id: ' + str(authorId))
+            if(not writtenByRelationInDatabase(gId, authorId, cur)):
+                cur.execute('INSERT INTO public."Written_By" (author_id, gutenberg_id) VALUES (%s, %s)', (authorId, gId))
+                conn.commit()
+                #print('loaded written by')
+            else:
+                wb = getWrittenBy(gId, authorId, cur)
+                #print(wb[0])
+                #print('written by relation in database: ' + str(wb[0][0]), + ', ' + str(wb[0][1]))
+   
         
-            
-
-        if(not writtenByRelationInDatabase(gId, authorId, cur)):
-            cur.execute('INSERT INTO public."Written_By" (author_id, gutenberg_id) VALUES (%s, %s)', (authorId, gId))
-            conn.commit()
-            print('written by')
-            #print('loaded written by')
-        else:
-            wb = getWrittenBy(gId, authorId, cur)
-            #print(wb[0])
-            #print('written by relation in database: ' + str(wb[0][0]), + ', ' + str(wb[0][1]))
-
-            
-        
-        #inset written_by
-    except ZeroDivisionError:
+    #    #inset written_by
+    except Exception:
         #pass
-        print('broken')
-        badFiles.append(gutenbergId)
+        brokenFiles.append(gId)
         print(Exception)
         print(gId)
         
@@ -300,11 +289,11 @@ def insertIntoDatabase(gId, title, release, language, author, fullText, conn, cu
 
 #           MAIN            #
 
-dbname = "gutenberg"
+dbname = "gutenburg"
 dbhost = "localhost"
 dbport = "5432"
 dbuser = "postgres"
-dbpassword = "password"
+dbpassword = "postgres"
 
 
 conn = pg.connect(database=dbname, host=dbhost, port=dbport, user=dbuser, password=dbpassword)
@@ -312,16 +301,14 @@ cur = conn.cursor()
 #dirToProcess = '/Users/edwardsja15/desktop/gutenberg/load/extract/_data'
 #dirToprocessWindows = '/home/reilly/database/load/_data'
 
-#dirToProcess = '/home/reilly/database/load/_data'
-dirToProcess = '/Users/edwardsja15/desktop/gutenberg/load/extract/_data'
+dirToProcess = '/home/reilly/database/load/_data'
+
 
 fileList = os.listdir(dirToProcess)
 #print(fileList[:10])
-
-invalidIds = []
-badFiles = []
-
 i = 0
+brokenFiles = []
+invalidIds = []
 for filename in fileList:
     #can load
     if('.txt' in filename):
@@ -332,49 +319,32 @@ for filename in fileList:
         if(language == 'en'):
             language = 'english'
 
-
-
         filenameS = filename.split('.')
-
-        gidIsValid = False
-
-        
+        isValid = False
 
         if('-' in filenameS[0]):
-            gidS = filenameS[0].split('-')
-
+            idSplit = filenameS[0].split('-')
             try:
-                int(gidS[1])
-                gidIsValid = True
-
-                gutenbergId = filenameS[0]
-
+                int(idSplit[1])
+                isValid = True
             except ValueError:
-                gidIsValid = False
+                isValid = False
 
                 invalidIds.append(filename)
 
-            #gutenbergId = filenameS[0].split('-')[0]
-        else:
-            gutenbergId = filenameS[0]
-            gidIsValid = True
-
-        print(gutenbergId)
-        if(gidIsValid):
-            print('valid gid is: ' + gutenbergId)
-            insertIntoDatabase(gutenbergId, title, release, language, author, fullText, conn, cur, badFiles)
-            print('inserted')
-        i += 1
-        if(i > 150):
-            break
-
-
-
-
-print('invalid ids are: ')
-pprint(invalidIds)
-print('bad files are: ')
-pprint(badFiles)
+        gutenbergId = filenameS[0]
+        print('filename is: ' + filename)
         
+        if(isValid):
+            insertIntoDatabase(gutenbergId, title, release, language, author, fullText, conn, cur, brokenFiles)
+        #i += 1
+        #if(i > 1050):
+        #    break
+print('invalid ids:')
+pprint(invalidIds)
+print('broken files:')
+pprint(brokenFiles)
+
+conn.close()
 
 
