@@ -8,80 +8,6 @@ from pprint import pprint
 
 
 
-def extractData(dirToOpen):
-    categorizedTxtFileList = os.listdir(dirToOpen)
-
-    for fileName in categorizedTxtFileList:
-        title =""
-        author =""
-        release =""
-        language =""
-        text =""
-        charSetEncode=""
-        asciiErr = False
-        utf8Err = False
-        defaultErr = False
-
-        currentFileDir = os.path.join(categorizedTxtDir,fileName)
-        currentFileAscii = open(currentFileDir,"r",encoding='ascii')
-        currentFileUtf8 = open(currentFileDir,"r",encoding='utf-8')
-        currentFileDefult = open(currentFileDir,"r")
-        try:
-            ascContent = currentFileAscii.read()
-        except:
-            asciiErr=True
-
-        try:
-            utfContent = currentFileUtf8.read()
-        except:
-            utf8Err=True
-
-        try:
-            defaultContent = currentFileDefult.read()
-        except:
-            defaultErr = True
-        
-        if asciiErr == False:
-            content = ascContent
-        elif utf8Err == False:
-            content = utfContent
-        elif defaultErr == False:
-            content = defaultContent
-        else:
-            currentFileAscii.close()
-            currentFileUtf8.close()
-            currentFileDefult.close()
-            currentFile = os.path.join(categorizedTxtDir,fileName)
-            newFile = os.path.join(encodeErrUnkownDir,fileName)
-            os.rename(currentFile,newFile)
-            continue
-        
-        splitFile = []
-        if "*** START OF THIS PROJECT GUTENBERG EBOOK" in content or "*** START OF THE PROJECT GUTENBERG EBOOK" in content or "***START OF THE PROJECT GUTENBERG EBOOK" in content:
-            splitFile = re.split("\*\*\*(.)*\*\*\*", content, maxsplit=1)
-
-        if len(splitFile) == 2:
-            info = splitFile[0]
-            text = splitFile[1]
-            splitLines = info.split("\n")
-            for eachLine in splitLines:
-                if "Title:" in eachLine:
-                    title = eachLine.replace("\n","")
-                elif "Author:" in eachLine:
-                    author = eachLine.replace("\n","")
-                elif "Release Date:" in eachLine:
-                    release = eachLine.replace("\n","")
-                elif "Language:" in eachLine:
-                    language = eachLine.replace("\n","")
-                elif "Character set encoding:" in eachLine:
-                    charSetEncode =eachLine.replace("Character set encoding: ","")
-                    charSetEncode = charSetEncode.replace("\n","")
-            
-            currentFileAscii.close()
-            currentFileUtf8.close()
-            currentFileDefult.close()
-            if title == "" or author == "" or release == "" or language == "":
-                print('Data missing')
 
 
 def extractDataFromHeaderLine(dataDescription, line):
@@ -185,11 +111,21 @@ def processAuthorName(authorName):
     suffix = ''
     prefix = ''
     nameL = authorName.split()
+    i = 0
+    while(i < len(nameL)):
+        if('(' in nameL[i] or ')' in nameL[i]):
+            print('was in')
+            del nameL[i]
+            i -= 1
+
+        i += 1
+
+    print('authorName finished loop: ' + authorName)
 
     nameLen = len(nameL)
 
     #check for prefix
-    comPrefixes = ['mr', 'mrs', 'miss', 'sir', 'lord', 'ms']
+    comPrefixes = ['mr', 'mrs', 'miss', 'sir', 'lord', 'ms', 'dr']
     comSuffixes = ['sr', 'jr', 'ii', 'iii', 'iv', 'v']
 
 
@@ -240,10 +176,12 @@ def processAuthorName(authorName):
 def getBookByPrimaryKey(gutenbergId, cur):
     cur.execute('Select * From public."Book" Where gutenberg_id = %s', (gutenbergId,))
     result = cur.fetchall()
+    print('got result book')
     #print(result)
     return result
 
 def bookIsInDatabase(gutenbergId, conn):
+    print('book in')
     result = getBookByPrimaryKey(gutenbergId, conn)
     #print('book is:')
     #print(result)
@@ -259,12 +197,14 @@ def getAuthorByName(firstName, middleName, lastName, suffix, prefix, cur):
                     (firstName, middleName, lastName, suffix, prefix))
 
     result = cur.fetchall()
-    #print(result)
+    print('got auth result')
     return result
 
 def authorIsInDatabase(firstName, middleName, lastName, suffix, prefix, cur):
-    result = getAuthorByName(firstName, middleName, lastName, suffix, prefix, cur)
+    print('auth in')
 
+    result = getAuthorByName(firstName, middleName, lastName, suffix, prefix, cur)
+    print('got auth')
     if(len(result) > 0):
         return True
     else:
@@ -278,6 +218,8 @@ def getWrittenBy(gutenbergId, authorId, cur):
 
 
 def writtenByRelationInDatabase(gutenbergId, authorId, cur):
+    print('written by in')
+
     result = getWrittenBy(gutenbergId, authorId, cur)
 
     if(len(result) > 0):
@@ -286,9 +228,9 @@ def writtenByRelationInDatabase(gutenbergId, authorId, cur):
         return False
 
 
-def insertIntoDatabase(gId, title, release, language, author, fullText, conn, cur):
+def insertIntoDatabase(gId, title, release, language, author, fullText, conn, cur, badFiles):
     firstName, middleName, lastName, suffix, prefix = processAuthorName(author)
-    gId = str(gId) + '-' + language
+    #gId = str(gId) + '-' + language
     try:
     
         
@@ -305,38 +247,52 @@ def insertIntoDatabase(gId, title, release, language, author, fullText, conn, cu
                             (gId, None, fullText, language, title))
                 print('loaded book wth null date: ' + str(gId))
                 conn.commit()
-
+            print('author')
         else:
             print('book is in database, gid: ' + str(gId))
         
+        
+        #deal with multiple authors
+        #authorsL = []
+        #if(' and ' in author):
+        #    authorsL = author.split(' and ')
+
+
         #TODO fix rest of querys
         if(not authorIsInDatabase(firstName, middleName, lastName, suffix, prefix, cur)):
 
-        #inset author
+            #inset author
             cur.execute('insert into public."Author" (first_name,last_name,middle_name,suffix,prefix) VALUES (%s, %s, %s, %s, %s) returning author_id',
                         (firstName, lastName, middleName, suffix, prefix))
             #print('loaded author')
             authorId = cur.fetchone()
             conn.commit()
             #print('auth id is: ' + str(authorId[0]))
+            print('book')
         else:
             
             authorId = getAuthorByName(firstName, middleName, lastName, suffix, prefix, cur)[0][0]
             print('author is in database, author_id: ' + str(authorId))
         
+            
+
         if(not writtenByRelationInDatabase(gId, authorId, cur)):
             cur.execute('INSERT INTO public."Written_By" (author_id, gutenberg_id) VALUES (%s, %s)', (authorId, gId))
             conn.commit()
+            print('written by')
             #print('loaded written by')
         else:
             wb = getWrittenBy(gId, authorId, cur)
             #print(wb[0])
             #print('written by relation in database: ' + str(wb[0][0]), + ', ' + str(wb[0][1]))
-   
+
+            
         
-    #    #inset written_by
-    except Exception:
+        #inset written_by
+    except ZeroDivisionError:
         #pass
+        print('broken')
+        badFiles.append(gutenbergId)
         print(Exception)
         print(gId)
         
@@ -344,11 +300,11 @@ def insertIntoDatabase(gId, title, release, language, author, fullText, conn, cu
 
 #           MAIN            #
 
-dbname = "gutenburg"
+dbname = "gutenberg"
 dbhost = "localhost"
 dbport = "5432"
 dbuser = "postgres"
-dbpassword = "postgres"
+dbpassword = "password"
 
 
 conn = pg.connect(database=dbname, host=dbhost, port=dbport, user=dbuser, password=dbpassword)
@@ -356,11 +312,15 @@ cur = conn.cursor()
 #dirToProcess = '/Users/edwardsja15/desktop/gutenberg/load/extract/_data'
 #dirToprocessWindows = '/home/reilly/database/load/_data'
 
-dirToProcess = '/home/reilly/database/load/_data'
-
+#dirToProcess = '/home/reilly/database/load/_data'
+dirToProcess = '/Users/edwardsja15/desktop/gutenberg/load/extract/_data'
 
 fileList = os.listdir(dirToProcess)
 #print(fileList[:10])
+
+invalidIds = []
+badFiles = []
+
 i = 0
 for filename in fileList:
     #can load
@@ -369,17 +329,52 @@ for filename in fileList:
 
         title, author, release, language, fullText = getData(fullfilename)
 
+        if(language == 'en'):
+            language = 'english'
+
+
+
         filenameS = filename.split('.')
-        if('-' in filenameS[0]):
-            gutenbergId = filenameS[0].split('-')[0]
-        else:
-            gutenbergId = filenameS[0]
-        print('filename is: ' + filename)
+
+        gidIsValid = False
+
         
 
-        insertIntoDatabase(gutenbergId, title, release, language, author, fullText, conn, cur)
-        #i += 1
-        #if(i > 100):
-        #    break
+        if('-' in filenameS[0]):
+            gidS = filenameS[0].split('-')
+
+            try:
+                int(gidS[1])
+                gidIsValid = True
+
+                gutenbergId = filenameS[0]
+
+            except ValueError:
+                gidIsValid = False
+
+                invalidIds.append(filename)
+
+            #gutenbergId = filenameS[0].split('-')[0]
+        else:
+            gutenbergId = filenameS[0]
+            gidIsValid = True
+
+        print(gutenbergId)
+        if(gidIsValid):
+            print('valid gid is: ' + gutenbergId)
+            insertIntoDatabase(gutenbergId, title, release, language, author, fullText, conn, cur, badFiles)
+            print('inserted')
+        i += 1
+        if(i > 150):
+            break
+
+
+
+
+print('invalid ids are: ')
+pprint(invalidIds)
+print('bad files are: ')
+pprint(badFiles)
+        
 
 
