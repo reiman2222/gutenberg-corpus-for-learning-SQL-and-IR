@@ -3,9 +3,10 @@ Values ('Q','tests','smith', 'Jr.')
 returning author_id
 
 
+
+//run this query to start database fresh
+
 delete from public."Written_By";
 delete from public."Author";
 delete from public."Book";
-
-
 ALTER SEQUENCE public."Author_author_id_seq" RESTART WITH 1;
