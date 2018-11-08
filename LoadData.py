@@ -332,6 +332,9 @@ for filename in fileList:
 
                 invalidIds.append(filename)
 
+        else:
+            isValid = True
+
         gutenbergId = filenameS[0]
         print('filename is: ' + filename)
         
