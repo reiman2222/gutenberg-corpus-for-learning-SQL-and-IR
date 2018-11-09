@@ -16,13 +16,13 @@ company = Table('company', metadata,
 
 POSTGRES = {
     'user': 'postgres',
-    'pw': 'password',
-    'db': 'my_database',
+    'pw': 'postgres',
+    'db': 'gutenburg',
     'host': 'localhost',
     'port': '5432',
     }
 #engine = create_engine('postgresql://postgres:password@localhost:5432/my_database')
-engine = create_engine('postgresql://postgres:password@localhost:5432/my_database')
+'''engine = create_engine('postgresql://postgres:password@localhost:5432/my_database')
 
 with engine.connect() as con:
 
@@ -30,3 +30,4 @@ with engine.connect() as con:
     for row in rs:
         id,name,age,address,salary = rs
         print(row)
+'''
