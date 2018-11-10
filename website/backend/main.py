@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, render_template, render_template_string
 from flask_cors import CORS, cross_origin
 from flask_restful import Resource, Api
 from json import dumps
@@ -150,7 +150,6 @@ def get_authors_of_book(gutenberg_id):
 #author_id author_id
 #author_id is an integer
 def get_books_by_author(author_id):
-    print('in get books by author')
     book_ids = WrittenBy.query.filter_by(author_id=author_id)
     
     books = []
@@ -164,7 +163,7 @@ def get_books_by_author(author_id):
 
 
 
-
+'''
 @app.route("/")
 def hello():
     #book = Book.query.filter_by(gutenberg_id='46630').first()
@@ -172,19 +171,8 @@ def hello():
     #b = get_book_by_title('two mothers')
     #return get_book_by_title('two mothers')
 
-    '''
-    #sample showing geting all authors of book 18779-0
-    a = get_authors_of_book('18779-0')
-    print(len(a))
-    print(a[0].last_name)
-    astr = []
-            
-    for auth in a:
-        name = auth.first_name + ' ' + auth.middle_name + ' ' + auth.last_name
-        astr.append(name)
-            
-    names = ', '.join(astr)
-    '''
+    
+
     #sample showing titles of works by author 22
     bs = get_books_by_author(22)
     print(len(bs))
@@ -193,7 +181,8 @@ def hello():
         print(b.title)
         titles.append(b.title)
 
-    return ' !!!! '.join(titles)
+    return bs[0].title, bs[0].full_text
+'''
 
 '''class Employees(Resource):
     def get(self):
@@ -210,6 +199,34 @@ api.add_resource(Employees, '/employees') # Route_1
 api.add_resource(Employees_Name, '/employees/<employee_id>') # Route_3
 '''
 
+
+@app.route('/')
+def my_form():
+    return render_template('form.html')
+
+@app.route('/', methods=['POST'])
+def my_form_post():
+    titleText = request.form['searchTitle']
+    title = titleText.lower()
+    if(title != ''):
+        book = get_book_by_title(title)
+        numBooks = book.count()
+
+        if(numBooks == 0):
+            return 'No books by title: ' + title 
+        else:
+            return book[0].full_text.replace('\n', '<br />')
+    else:
+        return 'Title cannot be empty.'
+
+    authorText = request.form['searchAuthor']
+    authorName = authorText.lower()
+    #stoped working here !!!!!!!!!!!!!!!!!
+    #if(authorName != ''):
+
+
+
+
 if __name__ == '__main__':
-    app.run(port=5007)
+    app.run(port=5008)
     
