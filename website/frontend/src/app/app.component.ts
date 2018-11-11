@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { ALPN_ENABLED } from 'constants';
 
 
 @Component({
@@ -28,7 +27,7 @@ export class AppComponent{
 
   searchAuthor(authorName){
     //alert("This is author");
-    this.httpClient.post('http://127.0.0.1:5008/',{"authorname":authorName}).subscribe(data => {
+    this.httpClient.post('http://127.0.0.1:5008/'+"author",{"authorname":authorName}).subscribe(data => {
     this.authorData = data as JSON;
     })
   }
@@ -36,7 +35,6 @@ export class AppComponent{
   searchTitle(titleName){
     //alert("this is title");
     this.httpClient.post('http://127.0.0.1:5008/'+"title",{"bookname":titleName}).subscribe(data => {
-    alert("Getting it")
     this.titleData = data as JSON;
     })
   }
