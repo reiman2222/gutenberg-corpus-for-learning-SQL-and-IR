@@ -3,6 +3,9 @@ Check is npm and flask intalled if you do skip to step 3
 1. go to this website to download nodejs and npm:https://www.npmjs.com/get-npm
 2. run flask install command using pip: pip install Flask (website instruction:http://flask.pocoo.org/docs/1.0/installation/)
 3. install the remainning packages:(if there is any more packages need to be install go ahead and install them.)
+Angular:
+npm install @angular/cli
+Flask:
 pip install flask marshmallow sqlalchemy psycopg2-binary
 pip install flask_sqlalchemy
 pip install flask-restful
