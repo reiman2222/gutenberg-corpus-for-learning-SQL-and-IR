@@ -37,7 +37,7 @@ def processAuthorName(authorName):
     lastName = ''
     suffix = ''
     prefix = ''
-    nameL = authorName.split()
+    nameL = authorName.lower().split()
 
     i = 0
     while(i < len(nameL)):
@@ -84,14 +84,6 @@ def processAuthorName(authorName):
         del nameL[0]
         middleName = ' '.join(nameL)
 
-    '''
-    print('first name: ' + firstName)
-    print('middle name: ' + middleName)
-    print('last name: ' + lastName)
-    print('suffix: ' + suffix)
-    print('prefix: ' + prefix)
-    '''
-
     return firstName, middleName, lastName, suffix, prefix
 
 #-----------------------------------------------#
@@ -101,7 +93,7 @@ def processAuthorName(authorName):
 #returns all books with title book_title
 #book_title of type string
 def get_book_by_title(book_title):
-    b = Book.query.filter_by(title= book_title)
+    b = Book.query.filter_by(title= book_title.lower())
     return b
 
 #returns the book with gutenberg_id gid
@@ -195,7 +187,29 @@ def author_post():
     print("Start HERE")
     content = request.get_json(silent=True)
     author = content["authorname"]
-    # Not sure if the get_book_by_author is using author name or author id ???
+    if(author != ''):
+        auths = get_author_by_full_name(author.lower())
+
+        numAuthors = auths.count()
+
+        if(numAuthors == 0):
+            print('NO AUTHOR FOUND')
+            return build_json({"respond":'No authors by name: ' + author})
+
+        else:
+            authId = auths[0].author_id
+            booksByAuthor = get_books_by_author(authId)
+            bookTitles = [book.title for book in booksByAuthor]
+
+            htmlFormattedTitles = '<br />'.join(bookTitles)
+            return build_json({'respond':htmlFormattedTitles})
+
+    else:
+        return build_json({"respond":'Author name cannot be empty.'})
+
+
+
+
 
 #       END Server Routes
 
