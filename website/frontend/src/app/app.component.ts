@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
+import { ALPN_ENABLED } from 'constants';
 
 
 @Component({
@@ -7,12 +8,13 @@ import { HttpClient } from '@angular/common/http';
   templateUrl: './app.component.html',
   styleUrls: ['./app.component.css']
 })
-export class AppComponent {
-  title = 'app';
 
-  serverData: JSON;
-  employeeData: JSON;
-  employee:JSON;
+export class AppComponent{
+  title = 'app';
+  //queryname: String;
+
+  titleData: JSON;
+  authorData: JSON;
 
   constructor(private httpClient: HttpClient) {
   }
@@ -20,23 +22,22 @@ export class AppComponent {
   ngOnInit() {
   }
 
-  sayHi() {
-    this.httpClient.get('http://127.0.0.1:5002/').subscribe(data => {
-      this.serverData = data as JSON;
-      console.log(this.serverData);
+  test(queryname){
+    alert(typeof(queryname));
+  }
+
+  searchAuthor(authorName){
+    //alert("This is author");
+    this.httpClient.post('http://127.0.0.1:5008/',{"authorname":authorName}).subscribe(data => {
+    this.authorData = data as JSON;
     })
   }
 
-  getAllEmployees() {
-    this.httpClient.get('http://127.0.0.1:5002/employees').subscribe(data => {
-      this.employeeData = data as JSON;
-      console.log(this.employeeData);
-    })
-  }
-  getEmployee() {
-    this.httpClient.get('http://127.0.0.1:5002/employees/1').subscribe(data => {
-      this.employee = data as JSON;
-      console.log(this.employee);
+  searchTitle(titleName){
+    //alert("this is title");
+    this.httpClient.post('http://127.0.0.1:5008/'+"title",{"bookname":titleName}).subscribe(data => {
+    alert("Getting it")
+    this.titleData = data as JSON;
     })
   }
 }

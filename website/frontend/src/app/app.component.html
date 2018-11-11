@@ -5,16 +5,15 @@
 </div>
 
 <div>
-  <button (click)="sayHi()">Say Hi</button>
-  <span>Server data: {{serverData | json}}</span>
+    <p>Search by Author</p>
+    <input #authorname placeholder="Enter Author Name"/>
+    <button (click)="searchAuthor(authorname.value)">Search</button>
+    <span>Server Respond: {{authorData | json}}</span>
 </div>
 
 <div>
-  <button (click)="getAllEmployees()">All Employees</button>
-  <span>All Employee data: {{employeeData | json}}</span>
-</div>
-
-<div>
-  <button (click)="getEmployee()">Employees By ID</button>
-  <span>Employee data: {{employee | json}}</span>
+    <p>Search by Title</p>
+    <input #titlename placeholder="Enter Title Name"/>
+    <button (click)="searchTitle(titlename.value)">Search</button>
+    <span>Server Respond: {{titleData | json}}</span>
 </div>
