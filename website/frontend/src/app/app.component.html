@@ -1,19 +1,25 @@
+<style>
+  p.c {
+      white-space: pre;
+  }
+</style>
+
 <div style="text-align:center">
   <h1>
-    Welcome to Angular + Python + Flask Demo!
+    Gutenburg Library
   </h1>
 </div>
 
 <div>
-    <p>Search by Author</p>
+    <h2>Search by Author</h2>
     <input #authorname placeholder="Enter Author Name"/>
     <button (click)="searchAuthor(authorname.value)">Search</button>
-    <span>Server Respond: {{authorData}}</span>
 </div>
 
 <div>
-    <p>Search by Title</p>
+    <h2>Search by Title</h2>
     <input #titlename placeholder="Enter Title Name"/>
     <button (click)="searchTitle(titlename.value)">Search</button>
-    <span>Server Respond: {{titleData | json}}</span>
+    <h2>Server Respond:</h2>
+    <p class="c"> {{serverData}}</p>
 </div>

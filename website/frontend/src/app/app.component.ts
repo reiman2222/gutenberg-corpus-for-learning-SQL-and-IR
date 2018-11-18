@@ -10,10 +10,8 @@ import { HttpClient } from '@angular/common/http';
 
 export class AppComponent{
   title = 'app';
-  //queryname: String;
 
-  titleData: string;
-  authorData: string;
+  serverData: string;
 
   constructor(private httpClient: HttpClient) {
   }
@@ -30,7 +28,7 @@ export class AppComponent{
     this.httpClient.post('http://127.0.0.1:5008/'+"author",{"authorname":authorName}).subscribe(data => {
     //this.authorData = data["respond"];
     var respond = data["respond"];
-    this.authorData = respond.replace(/<br\s*[\/]?>/gi, ", ");
+    this.serverData = respond.replace(/<br\s*[\/]?>/gi, "\n");
     })
   }
 
@@ -39,7 +37,7 @@ export class AppComponent{
     this.httpClient.post('http://127.0.0.1:5008/'+"title",{"bookname":titleName}).subscribe(data => {
     //this.titleData = data["respond"];
     var respond = data["respond"];
-    this.titleData = respond.replace(/<br\s*[\/]?>/gi, ", ");
+    this.serverData = respond.replace(/<br\s*[\/]?>/gi, "\n");
     })
   }
 }
